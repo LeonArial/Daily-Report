@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>运维中心计划管理</title>
+    <title>{{ title }} - {{ report_date }}</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
@@ -41,6 +41,7 @@
             border: 1px solid #dee2e6;
             padding: 12px 15px;
             text-align: left;
+            vertical-align: middle;
         }
         thead {
             background-color: #007bff;
@@ -61,11 +62,44 @@
             font-size: 0.8em;
             color: #6c757d;
         }
+        .status {
+            padding: 5px 10px;
+            border-radius: 15px;
+            color: #fff;
+            font-size: 0.85em;
+            text-align: center;
+            display: inline-block;
+            min-width: 60px;
+            font-weight: bold;
+        }
+        .status-completed { background-color: #28a745; }
+        .status-inprogress { background-color: #007bff; }
+        .status-delayed { background-color: #dc3545; }
+        .status-pending { background-color: #ffc107; color: #333; }
+        .status-default { background-color: #6c757d; }
+
+        .progress-bar-container {
+            width: 100%;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            height: 22px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            background-color: #28a745;
+            height: 100%;
+            line-height: 22px;
+            color: black;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.85em;
+            transition: width 0.4s ease-in-out;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>{{ title }}</h1>
+        <h1>{{ title }} - {{ report_date }}</h1>
         {% for sheet in sheets %}
             <h2>{{ sheet.name }}</h2>
             <table>
@@ -80,7 +114,32 @@
                     {% for row in sheet.data %}
                     <tr>
                         {% for cell in row %}
-                            <td>{{ cell }}</td>
+                            <td>
+                            {% set header = sheet.headers[loop.index0] %}
+                            {# Progress Bar for '进度' or '完成率' column (handles decimal values 0-1) #}
+                            {% if ('进度' in header or '完成率' in header) and cell is number and 0 <= cell <= 1 %}
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar" style="width: {{ cell * 100 }}%;">{{ (cell * 100) | round | int }}%</div>
+                                </div>
+                            {# Status labels for '状态' column #}
+                            {% elif '状态' in header %}
+                                {% set cell_str = cell | string | lower %}
+                                {% if '完成' in cell_str %}
+                                    <span class="status status-completed">{{ cell }}</span>
+                                {% elif '进行中' in cell_str or '处理中' in cell_str %}
+                                    <span class="status status-inprogress">{{ cell }}</span>
+                                {% elif '延期' in cell_str or '风险' in cell_str %}
+                                    <span class="status status-delayed">{{ cell }}</span>
+                                {% elif '待办' in cell_str or '未开始' in cell_str %}
+                                    <span class="status status-pending">{{ cell }}</span>
+                                {% elif cell %}
+                                    <span class="status status-default">{{ cell }}</span>
+                                {% endif %}
+                            {# Default cell rendering #}
+                            {% else %}
+                                {{ cell }}
+                            {% endif %}
+                            </td>
                         {% endfor %}
                     </tr>
                     {% endfor %}

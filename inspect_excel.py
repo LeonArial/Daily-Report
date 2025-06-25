@@ -28,6 +28,6 @@ def excel_to_markdown(excel_path, output_path):
 
 if __name__ == '__main__':
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    EXCEL_FILE = os.path.join(BASE_DIR, '运维中心计划管理.xlsx')
-    OUTPUT_MD_FILE = os.path.join(BASE_DIR, '运维中心计划管理_view.md')
+    EXCEL_FILE = os.path.join(BASE_DIR, '运维中心日报.xlsx')
+    OUTPUT_MD_FILE = os.path.join(BASE_DIR, '运维中心日报_view.md')
     excel_to_markdown(EXCEL_FILE, OUTPUT_MD_FILE)

@@ -1,7 +1,10 @@
 import pandas as pd
 from jinja2 import Environment, FileSystemLoader
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
+
+# Opt-in to the future behavior of pandas to silence the warning
+pd.set_option('future.no_silent_downcasting', True)
 
 def excel_to_html(excel_path, template_path, output_path):
     """
@@ -16,8 +19,19 @@ def excel_to_html(excel_path, template_path, output_path):
         # Iterate through each sheet
         for sheet_name in xls.sheet_names:
             df = pd.read_excel(xls, sheet_name=sheet_name)
-            # Replace NaN with empty strings for better HTML output
-            df = df.fillna('')
+
+            # Drop the '当前状态' column if it exists
+            if '当前状态' in df.columns:
+                df = df.drop(columns=['当前状态'])
+
+            # Identify and process potential progress columns
+            progress_cols = [col for col in df.columns if '进度' in col or '完成率' in col]
+            for col in progress_cols:
+                # Convert column to numeric, coercing errors to NaN. This handles decimal progress values.
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+
+            # Convert to object type to properly handle NaT, then fill all nulls
+            df = df.astype(object).fillna('')
             
             sheet_info = {
                 'name': sheet_name,
@@ -32,10 +46,14 @@ def excel_to_html(excel_path, template_path, output_path):
         template = env.get_template(os.path.basename(template_path))
 
         # Prepare data for the template
+        now = datetime.now()
+        report_date = now + timedelta(days=1)
+
         template_data = {
-            'title': '运维中心计划管理报告',
+            'title': '运维中心日报',
             'sheets': sheets_data,
-            'generation_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            'generation_date': now.strftime('%Y-%m-%d %H:%M:%S'),
+            'report_date': report_date.strftime('%Y-%m-%d')
         }
 
         # Render the template
@@ -55,8 +73,8 @@ def excel_to_html(excel_path, template_path, output_path):
 if __name__ == '__main__':
     # Define file paths relative to the script location
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    EXCEL_FILE = os.path.join(BASE_DIR, '运维中心计划管理.xlsx')
+    EXCEL_FILE = os.path.join(BASE_DIR, '运维中心日报.xlsx')
     TEMPLATE_FILE = os.path.join(BASE_DIR, 'template.html')
-    OUTPUT_HTML_FILE = os.path.join(BASE_DIR, '运维中心计划管理报告.html')
+    OUTPUT_HTML_FILE = os.path.join(BASE_DIR, '运维中心日报.html')
 
     excel_to_html(EXCEL_FILE, TEMPLATE_FILE, OUTPUT_HTML_FILE)
