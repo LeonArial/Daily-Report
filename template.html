@@ -126,12 +126,69 @@
         .plan-time-width {
             width: 150px;
         }
+        /* Stats Card Styles */
+        .stats-container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        .stat-card {
+            background-color: #f1f3f9;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            flex: 1;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .stat-card .title {
+            font-size: 1em;
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+        .stat-card .number {
+            font-size: 3em;
+            font-weight: bold;
+            color: #343a40;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>{{ title }} - {{ report_date }}</h1>
+        <h1>运维中心日报 {{ report_date }}</h1>
         {% for sheet in sheets %}
+            {% if sheet.name == '运维中心日常计划 - 进行中任务' %}
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="title">进行中任务</div>
+                    <div class="number">{{ stats.in_progress }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="title">当日已完成任务</div>
+                    <div class="number">{{ stats.completed_today }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="title">明日新增任务</div>
+                    <div class="number">{{ stats.new_tasks }}</div>
+                </div>
+            </div>
+            {% endif %}
+            {% if sheet.name == '星御专项计划 - 进行中任务' %}
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="title">进行中任务</div>
+                    <div class="number">{{ stats_xingyu.in_progress }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="title">当日已完成任务</div>
+                    <div class="number">{{ stats_xingyu.completed_today }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="title">明日新增任务</div>
+                    <div class="number">{{ stats_xingyu.new_tasks }}</div>
+                </div>
+            </div>
+            {% endif %}
             <h2>{{ sheet.name }}</h2>
             <table>
                 <thead>

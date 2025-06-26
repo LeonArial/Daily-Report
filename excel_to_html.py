@@ -49,6 +49,8 @@ def excel_to_html(excel_path, template_path, output_path):
 
         sheets_data = []
         today = datetime.now().date()
+        stats = {}
+        stats_xingyu = {}
 
         # 遍历每个工作表
         for sheet_name in xls.sheet_names:
@@ -71,6 +73,20 @@ def excel_to_html(excel_path, template_path, output_path):
                 # --- 筛选“明日新增任务” ---
                 tomorrow = today + timedelta(days=1)
                 new_tasks_df = df[df['start_date'] == tomorrow].copy()
+
+                # --- 仅为“运维中心日常计划”计算统计数据 ---
+                if sheet_name == '运维中心日常计划':
+                    stats = {
+                        'in_progress': len(in_progress_df),
+                        'completed_today': len(completed_today_df),
+                        'new_tasks': len(new_tasks_df)
+                    }
+                if sheet_name == '星御专项计划':
+                    stats_xingyu = {
+                        'in_progress': len(in_progress_df),
+                        'completed_today': len(completed_today_df),
+                        'new_tasks': len(new_tasks_df)
+                    }
                 
                 # --- 清理辅助列 ---
                 in_progress_df.drop(columns=['completion_date', 'start_date'], inplace=True, errors='ignore')
@@ -151,8 +167,9 @@ def excel_to_html(excel_path, template_path, output_path):
         template_data = {
             'title': '运维中心日报',
             'sheets': sheets_data,
-            'generation_date': now.strftime('%Y-%m-%d %H:%M:%S'),
-            'report_date': report_date.strftime('%Y-%m-%d')
+            'report_date': report_date_str,
+            'stats': stats,
+            'stats_xingyu': stats_xingyu
         }
 
         # 渲染模板

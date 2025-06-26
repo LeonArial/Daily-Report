@@ -126,12 +126,39 @@
         .plan-time-width {
             width: 150px;
         }
+        /* Stats Card Styles */
+        .stats-container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        .stat-card {
+            background-color: #f1f3f9;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            flex: 1;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .stat-card .title {
+            font-size: 1em;
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+        .stat-card .number {
+            font-size: 3em;
+            font-weight: bold;
+            color: #343a40;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>运维中心日报 - 2025-06-27</h1>
+        <h1>运维中心日报 2025-06-27</h1>
         
+            
+            
             <h2>资源视图</h2>
             <table>
                 <thead>
@@ -334,6 +361,8 @@
                 </tbody>
             </table>
         
+            
+            
             <h2>监控告警</h2>
             <table>
                 <thead>
@@ -1312,6 +1341,8 @@
                 </tbody>
             </table>
         
+            
+            
             <h2>故障及事件处理</h2>
             <table>
                 <thead>
@@ -1402,6 +1433,23 @@
                 </tbody>
             </table>
         
+            
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="title">进行中任务</div>
+                    <div class="number">44</div>
+                </div>
+                <div class="stat-card">
+                    <div class="title">当日已完成任务</div>
+                    <div class="number">1</div>
+                </div>
+                <div class="stat-card">
+                    <div class="title">明日新增任务</div>
+                    <div class="number">0</div>
+                </div>
+            </div>
+            
+            
             <h2>运维中心日常计划 - 进行中任务</h2>
             <table>
                 <thead>
@@ -5046,7 +5094,9 @@
                 </tbody>
             </table>
         
-            <h2>当日已完成任务</h2>
+            
+            
+            <h2>运维中心日常计划 - 当日已完成任务</h2>
             <table>
                 <thead>
                     <tr>
@@ -5144,6 +5194,23 @@
                 </tbody>
             </table>
         
+            
+            
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="title">进行中任务</div>
+                    <div class="number">6</div>
+                </div>
+                <div class="stat-card">
+                    <div class="title">当日已完成任务</div>
+                    <div class="number">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="title">明日新增任务</div>
+                    <div class="number">0</div>
+                </div>
+            </div>
+            
             <h2>星御专项计划 - 进行中任务</h2>
             <table>
                 <thead>
@@ -5671,6 +5738,8 @@
                 </tbody>
             </table>
         
+            
+            
             <h2>数据表</h2>
             <table>
                 <thead>
@@ -5692,7 +5761,7 @@
             </table>
         
         <div class="footer">
-            <p>报告生成于 2025-06-26 09:32:41</p>
+            <p>报告生成于 </p>
         </div>
     </div>
 </body>
