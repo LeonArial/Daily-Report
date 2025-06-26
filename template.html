@@ -63,20 +63,30 @@
             color: #6c757d;
         }
         .status {
-            padding: 5px 10px;
-            border-radius: 15px;
+            padding: 3px 8px;   
+            border-radius: 12px;
             color: #fff;
-            font-size: 0.85em;
+            font-size: 0.9em;
             text-align: center;
             display: inline-block;
-            min-width: 60px;
-            font-weight: bold;
         }
         .status-completed { background-color: #28a745; }
-        .status-inprogress { background-color: #007bff; }
-        .status-delayed { background-color: #dc3545; }
-        .status-pending { background-color: #ffc107; color: #333; }
-        .status-default { background-color: #6c757d; }
+        .status-inprogress { background-color: #ffa200; }
+
+        /* Group Styles */
+        .group {
+            padding: 3px 8px;   
+            border-radius: 12px;
+            color: #fff;
+            font-size: 0.9em;
+            text-align: center;
+            display: inline-block;
+        }
+        .group-system { background-color: #3498db; } /* Blue */
+        .group-network { background-color: #df6412; } /* Yellow */
+        .group-security { background-color: #4c4c4ce8; } /* Red */
+        .group-application { background-color: #9b59b6; } /* Purple */
+        .group-default { background-color: #7f8c8d; } /* Gray */
 
         .progress-bar-container {
             position: relative;
@@ -101,12 +111,20 @@
             height: 100%;
             transition: width 0.4s ease-in-out;
         }
+        .col-sequence {
+            width: 20px;
+        }
         .task-name-fixed-width {
-            width: 300px;
-            min-width: 300px;
-            max-width: 300px;
-            word-wrap: break-word;
-            white-space: normal !important;
+            width: 250px;
+        }
+        .group-width {
+            width: 100px;
+        }
+        .risk-width {
+            width: 80px;
+        }
+        .plan-time-width {
+            width: 150px;
         }
     </style>
 </head>
@@ -119,7 +137,12 @@
                 <thead>
                     <tr>
                         {% for header in sheet.headers %}
-                            <th {% if sheet.name == '运维中心日常计划 - 进行中任务' and header == '任务名称' %}class="task-name-fixed-width"{% endif %}>{{ header }}</th>
+                            <th {% if header == '.' %}class="col-sequence"
+                                {% elif header == '任务名称' %}class="task-name-fixed-width"
+                                {% elif header == '负责小组' %}class="group-width"
+                                {% elif header == '风险提示' %}class="risk-width"
+                                {% elif '计划完成时间' in header %}class="plan-time-width"
+                                {% endif %}>{{ header }}</th>
                         {% endfor %}
                     </tr>
                 </thead>
@@ -127,27 +150,40 @@
                     {% for row in sheet.data %}
                     <tr>
                         {% for cell in row %}
-                            {% set header = sheet.headers[loop.index0] %}
-                            <td {% if sheet.name == '运维中心日常计划 - 进行中任务' and header == '任务名称' %}class="task-name-fixed-width"{% endif %}>
+                            {% set column_header = sheet.headers[loop.index0] %}
+                            <td {% if column_header == '.' %}class="col-sequence"
+                                {% elif column_header == '任务名称' %}class="task-name-fixed-width"
+                                {% elif column_header == '负责小组' %}class="group-width"
+                                {% elif column_header == '风险提示' %}class="risk-width"
+                                {% elif '计划完成时间' in column_header %}class="plan-time-width"
+                                {% endif %}>
                             {# Progress Bar for '进度' or '完成率' column (handles decimal values 0-1) #}
-                            {% if ('进度' in header or '完成率' in header) and cell is number and 0 <= cell <= 1 %}
+                            {% if ('进度' in column_header or '完成率' in column_header) and cell is number and 0 <= cell <= 1 %}
                                 <div class="progress-bar-container">
                                     <div class="progress-bar-text">{{ '%.0f'|format(cell * 100) }}%</div>
                                     <div class="progress-bar" style="width: {{ cell * 100 }}%;"></div>
                                 </div>
                             {# Status labels for '状态' column #}
-                            {% elif '状态' in header %}
+                            {% elif '状态' in column_header %}
                                 {% set cell_str = cell | string | lower %}
                                 {% if '完成' in cell_str %}
                                     <span class="status status-completed">{{ cell }}</span>
                                 {% elif '进行中' in cell_str or '处理中' in cell_str %}
                                     <span class="status status-inprogress">{{ cell }}</span>
-                                {% elif '延期' in cell_str or '风险' in cell_str %}
-                                    <span class="status status-delayed">{{ cell }}</span>
-                                {% elif '待办' in cell_str or '未开始' in cell_str %}
-                                    <span class="status status-pending">{{ cell }}</span>
+                                {% endif %}
+                            {# Group labels for '负责小组' column #}
+                            {% elif '负责小组' in column_header %}
+                                {% set group_name = cell | string %}
+                                {% if '架构' in group_name %}
+                                    <span class="group group-system">{{ cell }}</span>
+                                {% elif '网络' in group_name %}
+                                    <span class="group group-network">{{ cell }}</span>
+                                {% elif '基础' in group_name %}
+                                    <span class="group group-security">{{ cell }}</span>
+                                {% elif '应用' in group_name %}
+                                    <span class="group group-application">{{ cell }}</span>
                                 {% elif cell %}
-                                    <span class="status status-default">{{ cell }}</span>
+                                    <span class="group group-default">{{ cell }}</span>
                                 {% endif %}
                             {# Default cell rendering #}
                             {% else %}

@@ -27,6 +27,22 @@ def excel_to_html(excel_path, template_path, output_path):
             df[col] = df[col].astype(str).str.replace(r'\.0$', '', regex=True).replace('nan', None)
         return df
 
+    def sort_by_group(df_to_sort):
+        """
+        如果存在“负责小组”列，则按其进行自定义排序（“架构组”优先）。
+        """
+        if '负责小组' in df_to_sort.columns:
+            df_to_sort['sort_key'] = df_to_sort['负责小组'].apply(lambda x: 0 if '架构' in str(x) else 1)
+            df_to_sort.sort_values(by=['sort_key', '负责小组'], inplace=True)
+            df_to_sort.drop(columns='sort_key', inplace=True)
+        return df_to_sort
+
+    def add_sequence_number(df):
+        """如果存在“任务名称”列，则添加“.”列。"""
+        if '任务名称' in df.columns:
+            df.insert(0, '.', range(1, len(df) + 1))
+        return df
+
     try:
         # 加载 Excel 文件
         xls = pd.ExcelFile(excel_path)
@@ -66,6 +82,8 @@ def excel_to_html(excel_path, template_path, output_path):
                     cols_to_drop_inprogress = ['责任人', '计划开始时间', '耗时（天）', '备注', '当前状态', '实际完成时间', '是否按期完成']
                     in_progress_df = in_progress_df.drop(columns=cols_to_drop_inprogress, errors='ignore')
                     in_progress_df = clean_data(in_progress_df)
+                    in_progress_df = sort_by_group(in_progress_df)
+                    in_progress_df = add_sequence_number(in_progress_df)
                     df_processed = in_progress_df.astype(object).fillna('')
                     sheets_data.append({
                         'name': f'{sheet_name} - 进行中任务',
@@ -78,9 +96,11 @@ def excel_to_html(excel_path, template_path, output_path):
                     cols_to_drop = ['责任人', '当前进度', '计划开始时间', '计划完成时间（原）', '计划延期天数', '风险提示', '备注', '当前状态']
                     completed_today_df = completed_today_df.drop(columns=cols_to_drop, errors='ignore')
                     completed_today_df = clean_data(completed_today_df)
+                    completed_today_df = sort_by_group(completed_today_df)
+                    completed_today_df = add_sequence_number(completed_today_df)
                     df_processed = completed_today_df.astype(object).fillna('')
                     sheets_data.append({
-                        'name': f'当日已完成任务',
+                        'name': f'{sheet_name} - 当日已完成任务',
                         'headers': list(df_processed.columns),
                         'data': df_processed.values.tolist()
                     })
@@ -90,9 +110,11 @@ def excel_to_html(excel_path, template_path, output_path):
                     cols_to_drop_new_tasks = ['责任人', '当前进度', '计划完成时间（新）', '计划延期天数', '实际完成时间', '耗时（天）', '是否按期完成', '备注', '当前状态']
                     new_tasks_df_cleaned = new_tasks_df.drop(columns=cols_to_drop_new_tasks, errors='ignore')
                     new_tasks_df_cleaned = clean_data(new_tasks_df_cleaned)
+                    new_tasks_df_cleaned = sort_by_group(new_tasks_df_cleaned)
+                    new_tasks_df_cleaned = add_sequence_number(new_tasks_df_cleaned)
                     df_processed = new_tasks_df_cleaned.astype(object).fillna('')
                     sheets_data.append({
-                        'name': f'明日新增任务',
+                        'name': f'{sheet_name} - 明日新增任务',
                         'headers': list(df_processed.columns),
                         'data': df_processed.values.tolist()
                     })
@@ -107,6 +129,8 @@ def excel_to_html(excel_path, template_path, output_path):
                     df[col] = pd.to_numeric(df[col], errors='coerce')
                 
                 df = clean_data(df)
+                df = sort_by_group(df)
+                df = add_sequence_number(df)
                 df_processed = df.astype(object).fillna('')
                 
                 sheet_info = {
