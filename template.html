@@ -44,7 +44,7 @@
             vertical-align: middle;
         }
         thead {
-            background-color: #007bff;
+            background-color: #0056b3;
             color: #ffffff;
         }
         th {
@@ -79,21 +79,34 @@
         .status-default { background-color: #6c757d; }
 
         .progress-bar-container {
+            position: relative;
             width: 100%;
             background-color: #e9ecef;
             border-radius: 5px;
             height: 22px;
             overflow: hidden;
         }
+        .progress-bar-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            line-height: 22px;
+            color: black;
+            font-weight: bold;
+            font-size: 0.85em;
+            z-index: 1; /* Ensure text is above the bar */
+        }
         .progress-bar {
             background-color: #28a745;
             height: 100%;
-            line-height: 22px;
-            color: black;
-            text-align: center;
-            font-weight: bold;
-            font-size: 0.85em;
             transition: width 0.4s ease-in-out;
+        }
+        .task-name-fixed-width {
+            width: 300px;
+            min-width: 300px;
+            max-width: 300px;
+            word-wrap: break-word;
+            white-space: normal !important;
         }
     </style>
 </head>
@@ -106,7 +119,7 @@
                 <thead>
                     <tr>
                         {% for header in sheet.headers %}
-                            <th>{{ header }}</th>
+                            <th {% if sheet.name == '运维中心日常计划 - 进行中任务' and header == '任务名称' %}class="task-name-fixed-width"{% endif %}>{{ header }}</th>
                         {% endfor %}
                     </tr>
                 </thead>
@@ -114,12 +127,13 @@
                     {% for row in sheet.data %}
                     <tr>
                         {% for cell in row %}
-                            <td>
                             {% set header = sheet.headers[loop.index0] %}
+                            <td {% if sheet.name == '运维中心日常计划 - 进行中任务' and header == '任务名称' %}class="task-name-fixed-width"{% endif %}>
                             {# Progress Bar for '进度' or '完成率' column (handles decimal values 0-1) #}
                             {% if ('进度' in header or '完成率' in header) and cell is number and 0 <= cell <= 1 %}
                                 <div class="progress-bar-container">
-                                    <div class="progress-bar" style="width: {{ cell * 100 }}%;">{{ (cell * 100) | round | int }}%</div>
+                                    <div class="progress-bar-text">{{ '%.0f'|format(cell * 100) }}%</div>
+                                    <div class="progress-bar" style="width: {{ cell * 100 }}%;"></div>
                                 </div>
                             {# Status labels for '状态' column #}
                             {% elif '状态' in header %}
