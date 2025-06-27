@@ -162,8 +162,6 @@ def excel_to_html(excel_path, template_path, output_path):
         template = env.get_template(os.path.basename(template_path))
 
         # 为模板准备数据
-        now = datetime.now()
-        report_date = now + timedelta(days=1)
         template_data = {
             'title': '运维中心日报',
             'sheets': sheets_data,
@@ -194,7 +192,7 @@ if __name__ == '__main__':
 
     # 生成文件名，包含明天的日期
     report_date_str = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
-    OUTPUT_HTML_FILE = os.path.join(BASE_DIR, f'运维中心日报.html')
-    # OUTPUT_HTML_FILE = os.path.join(BASE_DIR, f'运维中心日报-{report_date_str}.html')
+    # OUTPUT_HTML_FILE = os.path.join(BASE_DIR, f'运维中心日报.html')
+    OUTPUT_HTML_FILE = os.path.join(BASE_DIR, f'运维中心日报-{report_date_str}.html')
 
     excel_to_html(EXCEL_FILE, TEMPLATE_FILE, OUTPUT_HTML_FILE)
