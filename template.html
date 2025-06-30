@@ -197,6 +197,7 @@
                             <th {% if header == '.' %}class="col-sequence"
                                 {% elif header == '任务名称' %}class="task-name-fixed-width"
                                 {% elif header == '负责小组' %}class="group-width"
+                                {% elif header == '当前进度' %}class="group-width"
                                 {% elif '时间' in header %}class="plan-time-width"
                                 {% elif '延期天数' in header %}class="delay-width"
                                 {% endif %}>{{ header }}</th>
@@ -216,7 +217,7 @@
                                 {% endif %}>
                             {# Progress Bar for '进度' column (handles decimal values 0-1) #}
                             {% if ('进度' in column_header) and cell is number and 0 <= cell <= 1 %}
-                                <div class="progress-bar-container group-width">
+                                <div class="progress-bar-container">
                                     <div class="progress-bar-text">{{ '%.0f'|format(cell * 100) }}%</div>
                                     <div class="progress-bar" style="width: {{ cell * 100 }}%;"></div>
                                 </div>
