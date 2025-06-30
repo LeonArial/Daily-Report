@@ -2,6 +2,7 @@ import pandas as pd
 from jinja2 import Environment, FileSystemLoader
 from datetime import datetime, timedelta
 import os
+import win32com.client as win32
 
 # 启用 pandas 的未来行为以消除警告
 pd.set_option('future.no_silent_downcasting', True)
@@ -44,6 +45,18 @@ def excel_to_html(excel_path, template_path, output_path):
         return df
 
     try:
+        # 使用 win32com 强制 Excel 打开并重新保存文件，以修复深层文件损坏问题。
+        # 这模拟了手动打开和保存文件的过程，可以解决 openpyxl 无法处理的错误。
+        # 注意：此方法需要 Windows 系统并安装了 Excel。
+        print("正在使用 Excel 应用程序预处理文件...")
+        excel_app = win32.Dispatch('Excel.Application')
+        excel_app.Visible = False
+        workbook = excel_app.Workbooks.Open(os.path.abspath(excel_path))
+        workbook.Save()
+        workbook.Close()
+        excel_app.Quit()
+        print("文件预处理完成。")
+
         # 加载 Excel 文件
         xls = pd.ExcelFile(excel_path)
 
@@ -54,6 +67,10 @@ def excel_to_html(excel_path, template_path, output_path):
 
         # 遍历每个工作表
         for sheet_name in xls.sheet_names:
+            # 如果工作表名称为“数据表”，则跳过
+            if sheet_name == '数据表':
+                continue
+
             df = pd.read_excel(xls, sheet_name=sheet_name)
 
             # 对特定工作表进行特殊处理，划分为三栏
@@ -95,8 +112,11 @@ def excel_to_html(excel_path, template_path, output_path):
 
                 # 添加“进行中任务”栏目
                 if not in_progress_df.empty:
-                    cols_to_drop_inprogress = ['责任人', '计划开始时间', '耗时（天）', '备注', '当前状态', '实际完成时间', '是否按期完成']
-                    in_progress_df = in_progress_df.drop(columns=cols_to_drop_inprogress, errors='ignore')
+                    # --- 定义“进行中任务”要保留的列 ---
+                    cols_to_keep_inprogress = ['任务名称', '负责小组', '当前进度', '计划完成时间（原）', '计划完成时间（新）', '计划延期天数', '风险提示']
+                    # 筛选出实际存在的列以避免错误
+                    existing_cols = [col for col in cols_to_keep_inprogress if col in in_progress_df.columns]
+                    in_progress_df = in_progress_df[existing_cols]
                     in_progress_df = clean_data(in_progress_df)
                     in_progress_df = sort_by_group(in_progress_df)
                     in_progress_df = add_sequence_number(in_progress_df)
@@ -109,8 +129,11 @@ def excel_to_html(excel_path, template_path, output_path):
 
                 # 添加“当日已完成任务”栏目
                 if not completed_today_df.empty:
-                    cols_to_drop = ['责任人', '当前进度', '计划开始时间', '计划完成时间（原）', '计划延期天数', '风险提示', '备注', '当前状态']
-                    completed_today_df = completed_today_df.drop(columns=cols_to_drop, errors='ignore')
+                    # --- 定义“当日已完成任务”要保留的列 ---
+                    cols_to_keep_completed = ['任务名称', '负责小组', '实际完成时间（新）', '实际完成时间', '耗时（天）', '是否按期完成']
+                    # 筛选出实际存在的列以避免错误
+                    existing_cols = [col for col in cols_to_keep_completed if col in completed_today_df.columns]
+                    completed_today_df = completed_today_df[existing_cols]
                     completed_today_df = clean_data(completed_today_df)
                     completed_today_df = sort_by_group(completed_today_df)
                     completed_today_df = add_sequence_number(completed_today_df)
@@ -123,8 +146,11 @@ def excel_to_html(excel_path, template_path, output_path):
 
                 # 添加“明日新增任务”栏目
                 if not new_tasks_df.empty:
-                    cols_to_drop_new_tasks = ['责任人', '当前进度', '计划完成时间（新）', '计划延期天数', '实际完成时间', '耗时（天）', '是否按期完成', '备注', '当前状态']
-                    new_tasks_df_cleaned = new_tasks_df.drop(columns=cols_to_drop_new_tasks, errors='ignore')
+                    # --- 定义“明日新增任务”要保留的列 ---
+                    cols_to_keep_new_tasks = ['任务名称', '负责小组', '计划开始时间', '计划完成时间（原）', '风险提示']
+                    # 筛选出实际存在的列以避免错误
+                    existing_cols = [col for col in cols_to_keep_new_tasks if col in new_tasks_df.columns]
+                    new_tasks_df_cleaned = new_tasks_df[existing_cols]
                     new_tasks_df_cleaned = clean_data(new_tasks_df_cleaned)
                     new_tasks_df_cleaned = sort_by_group(new_tasks_df_cleaned)
                     new_tasks_df_cleaned = add_sequence_number(new_tasks_df_cleaned)
@@ -137,6 +163,39 @@ def excel_to_html(excel_path, template_path, output_path):
 
             else:
                 # --- 对所有其他工作表进行通用处理 ---
+
+                # 如果是“监控告警”工作表，则按父子关系对行进行排序
+                if sheet_name == '监控告警' and '平台/系统' in df.columns and '父记录' in df.columns:
+                    df['父记录'] = df['父记录'].fillna('')
+                    
+                    children_map = {}
+                    root_nodes = []
+                    
+                    for _, row in df.iterrows():
+                        parent_name = row['父记录']
+                        if parent_name:
+                            if parent_name not in children_map:
+                                children_map[parent_name] = []
+                            children_map[parent_name].append(row)
+                        else:
+                            root_nodes.append(row)
+
+                    sorted_rows = []
+                    def append_nodes_recursively(nodes):
+                        for node in nodes:
+                            sorted_rows.append(node)
+                            node_name = node['平台/系统']
+                            if pd.notna(node_name) and node_name in children_map:
+                                append_nodes_recursively(children_map[node_name])
+
+                    append_nodes_recursively(root_nodes)
+                    
+                    if sorted_rows:
+                        df = pd.DataFrame(sorted_rows).reset_index(drop=True)
+                        # 排序后，删除“父记录”列，因为它不再需要显示
+                        if '父记录' in df.columns:
+                            df = df.drop(columns=['父记录'])
+
                 if '当前状态' in df.columns:
                     df = df.drop(columns=['当前状态'])
                 
@@ -187,7 +246,7 @@ def excel_to_html(excel_path, template_path, output_path):
 if __name__ == '__main__':
     # 定义相对于脚本位置的文件路径
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    EXCEL_FILE = os.path.join(BASE_DIR, '运维中心日报.xlsx')
+    EXCEL_FILE = os.path.join(BASE_DIR, '运维中心计划管理.xlsx')
     TEMPLATE_FILE = os.path.join(BASE_DIR, 'template.html')
 
     # 生成文件名，包含明天的日期

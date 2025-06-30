@@ -40,7 +40,7 @@
         th, td {
             border: 1px solid #dee2e6;
             padding: 12px 15px;
-            text-align: left;
+            text-align: center;
             vertical-align: middle;
         }
         thead {
@@ -118,13 +118,13 @@
             width: 250px;
         }
         .group-width {
-            width: 100px;
-        }
-        .risk-width {
-            width: 80px;
+            width: 81px;
         }
         .plan-time-width {
-            width: 150px;
+            width: 123px;
+        }
+        .delay-width {
+            width: 87px;
         }
         /* Stats Card Styles */
         .stats-container {
@@ -197,8 +197,8 @@
                             <th {% if header == '.' %}class="col-sequence"
                                 {% elif header == '任务名称' %}class="task-name-fixed-width"
                                 {% elif header == '负责小组' %}class="group-width"
-                                {% elif header == '风险提示' %}class="risk-width"
-                                {% elif '计划完成时间' in header %}class="plan-time-width"
+                                {% elif '时间' in header %}class="plan-time-width"
+                                {% elif '延期天数' in header %}class="delay-width"
                                 {% endif %}>{{ header }}</th>
                         {% endfor %}
                     </tr>
@@ -214,9 +214,9 @@
                                 {% elif column_header == '风险提示' %}class="risk-width"
                                 {% elif '计划完成时间' in column_header %}class="plan-time-width"
                                 {% endif %}>
-                            {# Progress Bar for '进度' or '完成率' column (handles decimal values 0-1) #}
-                            {% if ('进度' in column_header or '完成率' in column_header) and cell is number and 0 <= cell <= 1 %}
-                                <div class="progress-bar-container">
+                            {# Progress Bar for '进度' column (handles decimal values 0-1) #}
+                            {% if ('进度' in column_header) and cell is number and 0 <= cell <= 1 %}
+                                <div class="progress-bar-container group-width">
                                     <div class="progress-bar-text">{{ '%.0f'|format(cell * 100) }}%</div>
                                     <div class="progress-bar" style="width: {{ cell * 100 }}%;"></div>
                                 </div>
