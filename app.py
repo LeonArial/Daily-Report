@@ -2,6 +2,9 @@ import os
 import subprocess
 import uuid
 import logging
+import time
+import threading
+from datetime import datetime, timedelta
 from flask import Flask, request, render_template, send_from_directory, flash, redirect, url_for
 from werkzeug.utils import secure_filename
 
@@ -89,8 +92,53 @@ def upload_file():
 
 @app.route('/generated/<filename>')
 def download_file(filename):
-    """提供已生成报告的下载"""
-    return send_from_directory(app.config['GENERATED_FOLDER'], filename, as_attachment=True)
+    """提供已生成报告的下载，并设置用户友好的文件名。"""
+    report_date_str = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
+    download_name = f'运维中心日报-{report_date_str}.html'
+
+    return send_from_directory(
+        app.config['GENERATED_FOLDER'],
+        filename,
+        as_attachment=True,
+        download_name=download_name
+    )
+
+def cleanup_worker():
+    """定期清理旧文件的后台工作线程。"""
+    logging.info("清理线程已启动，将每小时检查一次旧文件。")
+    while True:
+        try:
+            folders_to_clean = [app.config['UPLOAD_FOLDER'], app.config['GENERATED_FOLDER']]
+            max_age_seconds = 3600 # 文件保留1小时
+
+            for folder in folders_to_clean:
+                if not os.path.isdir(folder):
+                    continue
+                
+                for filename in os.listdir(folder):
+                    file_path = os.path.join(folder, filename)
+                    try:
+                        # 确保是文件
+                        if not os.path.isfile(file_path):
+                            continue
+
+                        file_age = time.time() - os.path.getmtime(file_path)
+                        if file_age > max_age_seconds:
+                            os.remove(file_path)
+                            logging.info(f"已自动清理旧文件: {file_path}")
+                    except Exception as e:
+                        logging.error(f"清理文件 {file_path} 时出错: {e}")
+        except Exception as e:
+            logging.error(f"后台清理线程遇到错误: {e}")
+        
+        # 等待一小时后再次运行
+        time.sleep(3600)
+
 
 if __name__ == '__main__':
+    # 将清理任务放到后台线程中运行
+    # daemon=True 确保主程序退出时，该线程也会随之退出
+    cleanup_thread = threading.Thread(target=cleanup_worker, daemon=True)
+    cleanup_thread.start()
+
     app.run(host='0.0.0.0', port=5000, debug=True)
