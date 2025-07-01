@@ -118,10 +118,10 @@
             width: 250px;
         }
         .group-width {
-            width: 81px;
+            width: 90px;
         }
         .plan-time-width {
-            width: 123px;
+            width: 150px;
         }
         .delay-width {
             width: 87px;
@@ -195,7 +195,7 @@
                     <tr>
                         {% for header in sheet.headers %}
                             <th {% if header == '.' %}class="col-sequence"
-                                {% elif header == '任务名称' %}class="task-name-fixed-width"
+                                {% elif header == '任务名称' or header == '平台/系统' %}class="task-name-fixed-width"
                                 {% elif header == '负责小组' %}class="group-width"
                                 {% elif header == '当前进度' %}class="group-width"
                                 {% elif '时间' in header %}class="plan-time-width"
