@@ -31,18 +31,20 @@ def excel_to_html(excel_path, template_path, output_path):
     def sort_by_group(df_to_sort):
         """
         如果存在“负责小组”列，则按其进行自定义排序（“架构组”优先）。
-        在小组内部，如果存在“当前进度”列，则按进度升序排序。
+        在小组内部，如果存在“当前进度”列，则按进度降序排序。
         """
         if '负责小组' in df_to_sort.columns:
             df_to_sort['sort_key'] = df_to_sort['负责小组'].apply(lambda x: 0 if '架构' in str(x) else 1)
             
             sort_criteria = ['sort_key', '负责小组']
+            ascending_criteria = [True, True]
             if '当前进度' in df_to_sort.columns:
                 # 确保进度列是数值类型以便正确排序
                 df_to_sort['当前进度'] = pd.to_numeric(df_to_sort['当前进度'], errors='coerce')
                 sort_criteria.append('当前进度')
+                ascending_criteria.append(False)  # 进度按降序排序
             
-            df_to_sort.sort_values(by=sort_criteria, inplace=True)
+            df_to_sort.sort_values(by=sort_criteria, ascending=ascending_criteria, inplace=True)
             df_to_sort.drop(columns='sort_key', inplace=True)
         return df_to_sort
 
@@ -75,8 +77,8 @@ def excel_to_html(excel_path, template_path, output_path):
 
         # 遍历每个工作表
         for sheet_name in xls.sheet_names:
-            # 如果工作表名称为“数据表”，则跳过
-            if sheet_name == '数据表':
+            # 只处理指定的工作表
+            if sheet_name not in ['资源视图', '监控告警', '故障及事件处理', '运维中心日常计划', '星御专项计划']:
                 continue
 
             df = pd.read_excel(xls, sheet_name=sheet_name)
@@ -89,8 +91,11 @@ def excel_to_html(excel_path, template_path, output_path):
                 df['completion_date'] = pd.to_datetime(df['实际完成时间'], errors='coerce').dt.date
                 df['start_date'] = pd.to_datetime(df['计划开始时间'], errors='coerce').dt.date
 
-                # --- 筛选“进行中任务” ---
+                # --- 筛选"进行中任务" ---
                 in_progress_df = df[(df['当前进度'] != 1.0) & (pd.isna(df['completion_date']))].copy()
+                # 进一步筛选"任务类别"为"日重点"的数据
+                if '任务类别' in in_progress_df.columns:
+                    in_progress_df = in_progress_df[in_progress_df['任务类别'] == '日重点']
 
                 # --- 筛选“当日已完成任务” ---
                 completed_today_df = df[df['completion_date'] == today].copy()
@@ -159,7 +164,7 @@ def excel_to_html(excel_path, template_path, output_path):
                 # 添加“当日已完成任务”栏目
                 if not completed_today_df.empty:
                     # --- 定义“当日已完成任务”要保留的列 ---
-                    cols_to_keep_completed = ['任务名称', '负责小组', '计划完成时间（新）', '实际完成时间', '耗时（天）', '是否按期完成']
+                    cols_to_keep_completed = ['任务名称', '负责小组', '实际完成时间', '耗时（天）', '是否按期完成']
                     # 筛选出实际存在的列以避免错误
                     existing_cols = [col for col in cols_to_keep_completed if col in completed_today_df.columns]
                     completed_today_df = completed_today_df[existing_cols]
@@ -227,6 +232,19 @@ def excel_to_html(excel_path, template_path, output_path):
 
                 if '当前状态' in df.columns:
                     df = df.drop(columns=['当前状态'])
+                
+                # 在"故障及事件处理"工作表中筛选"进行中"的数据并隐藏"处理状态"列
+                if sheet_name == '故障及事件处理' and '处理状态' in df.columns:
+                    # 先筛选出"处理状态"为"进行中"的数据
+                    df = df[df['处理状态'] == '进行中']
+                    # 然后隐藏"处理状态"列
+                    df = df.drop(columns=['处理状态'])
+                
+                # 在"监控告警"和"资源视图"工作表中隐藏"父记录"相关列
+                if sheet_name in ['监控告警', '资源视图']:
+                    cols_to_drop = [col for col in df.columns if col in ['父记录', '父记录 2']]
+                    if cols_to_drop:
+                        df = df.drop(columns=cols_to_drop)
                 
                 progress_cols = [col for col in df.columns if '进度' in col or '完成率' in col]
                 for col in progress_cols:
